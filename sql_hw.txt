@@ -1,0 +1,46 @@
+1
+Вывести количество станков(id) в разбивке по году выпуска, которые когда-либо печатали деньги в размере 50 000 и когда-нибудь печатали деньги в размере 60 000.
+
+Источник данных – public.money_maker
+
+
+select EXTRACT('year' from a.actuality_start) as year,
+count(distinct(a.id)) as num_makers
+from money_maker as a
+join money_maker as b
+on a.id = b.id
+where a.money_produce = 50000 and b.money_produce = 60000
+group by year
+
+
+2
+Вывести все станки (id) и их максимальную производительность (money_produce), но только тех, у которых максимальная производительность за всю историю как минимум в два раза больше, чем минимальная за всю историю и которые за всю историю печатали банкноты в нескольких валютах (currency).
+
+Источник данных – public.money_maker
+
+
+SELECT a.id, max(a.money_produce) as max_produce
+from money_maker as a
+join money_maker as b
+on a.id = b.id
+where a.currency_cd!=b.currency_cd
+group by a.id
+having max(a.money_produce)>=2*min(a.money_produce);
+
+3
+Для каждого города найти среднюю на текущий момент зарплату сотрудников младше 40 лет, которые работают на машинках, печатающих рубли. Также вывести общее количество денег, которые печатаются этими машинками за день. Список городов отсортировать по убыванию средней зарплаты.
+
+Источники данных – city, money_maker_pre, employee
+
+
+SELECT city_nm as city, coalesce(round(avg(em.salary), 0), 0) as avg_salary,
+coalesce(sum(mmr.money_produce), 0 ) as total_rub_produce
+from city as c
+left join money_maker_pre as mmr
+on c.city_id=mmr.city_id
+left join employee as em
+on em.producer_id=mmr.id
+and mmr.currency='RUB' and DATE_PART('year', AGE(CURRENT_DATE, em.birth_dt))<40 and
+em.actuality_end>CURRENT_DATE
+group by city_nm, em.employee_id
+order by avg_salary desc
